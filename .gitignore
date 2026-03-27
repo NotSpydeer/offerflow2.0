@@ -1,0 +1,17 @@
+.next
+node_modules
+*.db
+*.db-journal
+
+# 环境变量（含 API Key，绝不提交）
+.env
+.env.local
+.env.*.local
+
+# 大型 OCR 训练数据文件（需手动部署）
+*.traineddata
+
+public/uploads/resumes/*
+public/uploads/jd-screenshots/*
+!public/uploads/resumes/.gitkeep
+!public/uploads/jd-screenshots/.gitkeep
