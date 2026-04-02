@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \":*)",
+      "Bash(node scripts/download-tessdata.js)",
+      "Bash(curl --version)",
+      "Bash(curl -L --max-time 120 -o \"e:/OfferFlow/public/tessdata/chi_sim-pkg.tgz\" \"https://registry.npmmirror.com/@tesseract.js-data/chi_sim/-/chi_sim-1.0.0.tgz\" --progress-bar)",
+      "Read(//e/OfferFlow node -e \nconst fs = require\\('fs'\\);\nconst path = require\\('path'\\);\nconst zlib = require\\('zlib'\\);\nconst tgzPath = './public/tessdata/chi_sim-pkg.tgz';\nconst outDir = './**)"
+    ],
+    "additionalDirectories": [
+      "e:\\OfferFlow\\public",
+      "e:\\OfferFlow\\public\\tessdata"
+    ]
+  }
+}
