@@ -1,59 +1,97 @@
-# OfferFlow - 求职简历投递管理系统
+# OfferFlow
 
-一个基于 Next.js + SQLite 的本地求职管理 Web 应用。
+> AI驱动的求职决策引擎 — 不只是记录投递，更是帮你做更聪明的求职决策。
+
+## 功能一览
+
+| 模块 | 功能 |
+|------|------|
+| **Landing Page** | 产品展示首页，无需登录即可查看 |
+| **登录系统** | 简洁的认证入口，保护内部数据 |
+| **岗位投递** | 列表 + 看板双视图，CRUD + 状态流转 |
+| **JD 智能解析** | 截图上传 → OCR 识别 → LLM 结构化提取 |
+| **简历管理** | PDF/DOCX 多版本上传，标签分类 |
+| **JD × 简历匹配** | AI 匹配评分 + 能力差距分析 + 投递策略建议 |
+| **最优简历推荐** | 批量评分所有简历版本，自动选最佳 |
+| **简历一键优化** | 基于 JD 重写简历，对齐关键词 |
+| **面试记录** | 按岗位分组的时间线，支持复盘 Markdown |
+| **数据 Dashboard** | 投递漏斗、状态/渠道分布图 |
 
 ## 快速启动
 
-### Windows
-双击运行 `start.bat`，或在命令行执行：
-```
-start.bat
-```
-
-### macOS / Linux
 ```bash
-chmod +x start.sh
-./start.sh
-```
-
-### 手动启动
-```bash
+# 1. 安装依赖
 npm install
-npx prisma db push
+
+# 2. 配置环境变量
+cp .env.example .env.local
+# 编辑 .env.local，填入 DOUBAO_API_KEY（火山引擎 Ark API）
+
+# 3. 初始化数据库
+npm run db:push
+
+# 4. 启动
 npm run dev
 ```
 
-然后访问 http://localhost:3000
-
----
-
-## 功能模块
-
-| 路径 | 功能 |
-|------|------|
-| `/dashboard` | 数据统计面板（卡片+饼图+柱状图） |
-| `/applications` | 岗位投递管理（列表/看板视图） |
-| `/resumes` | 简历版本管理（上传/标签） |
-| `/interviews` | 面试记录时间线 |
+访问 [http://localhost:3000](http://localhost:3000)，用 `admin / 123456` 登录。
 
 ## 技术栈
 
-- **框架**: Next.js 14 (App Router)
-- **样式**: TailwindCSS
-- **数据库**: SQLite + Prisma ORM
-- **图表**: Recharts
-- **拖拽看板**: @hello-pangea/dnd
-- **OCR**: Tesseract.js
+| 层 | 技术 |
+|----|------|
+| 前端 | Next.js 14 (App Router) + React 18 + TypeScript |
+| 样式 | Tailwind CSS + Radix UI |
+| 数据库 | SQLite + Prisma ORM |
+| OCR | Tesseract.js（本地，中英文） |
+| AI | 火山引擎 Ark / DeepSeek-V3 |
+| 文档解析 | pdf-parse + mammoth |
+| 图表 | Recharts |
+| 拖拽 | @hello-pangea/dnd |
+
+## 环境变量
+
+```env
+# .env.local（不提交，手动创建）
+DOUBAO_API_KEY=your_volcengine_ark_api_key
+
+# .env.development / .env.production（已提交，无密钥）
+DATABASE_URL="file:./dev.db"
+```
 
 ## 项目结构
 
 ```
-e:/OfferFlow/
-├── prisma/schema.prisma    # 数据库模型
-├── src/
-│   ├── app/               # 页面 + API Routes
-│   ├── components/        # UI组件
-│   ├── lib/               # 工具函数
-│   └── types/             # TypeScript类型
-└── public/uploads/        # 文件上传目录
+src/
+├── app/
+│   ├── page.tsx              # Landing Page
+│   ├── login/                # 登录页
+│   ├── (app)/                # 认证保护的内部页面
+│   │   ├── dashboard/
+│   │   ├── applications/
+│   │   ├── resumes/
+│   │   └── interviews/
+│   └── api/                  # 后端接口（含 4 个 AI 接口）
+├── components/
+│   ├── auth/                 # 路由守卫
+│   ├── applications/         # 业务组件
+│   ├── dashboard/            # 图表组件
+│   └── layout/               # Sidebar + Header
+└── lib/
+    ├── auth.ts               # 认证工具
+    ├── prisma.ts             # 数据库客户端
+    └── utils.ts              # 工具函数
 ```
+
+## 常用命令
+
+```bash
+npm run dev          # 开发环境 :3000
+npm run dev:beta     # 开发环境 :3001（双环境对比）
+npm run db:push      # 同步数据库 schema
+npm run db:studio    # 可视化数据库
+```
+
+## 文档
+
+详细的架构说明、开发记录和 AI Prompt 资产见 [docs/](docs/) 目录。
