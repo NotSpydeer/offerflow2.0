@@ -4,187 +4,159 @@
 
 ```
 OfferFlow/
-├── prisma/
-│   └── schema.prisma          # 数据模型定义
+├── prisma/schema.prisma        # 数据模型
 ├── public/
-│   ├── tessdata/              # Tesseract OCR 语言包（chi_sim + eng）
+│   ├── tessdata/               # OCR 语言包（chi_sim + eng，.gz格式）
 │   └── uploads/
-│       ├── resumes/           # 上传的简历文件（PDF/DOCX）
-│       └── jd-screenshots/    # OCR 临时图片（处理后自动删除）
+│       ├── resumes/            # 用户上传的简历文件
+│       └── jd-screenshots/     # OCR 临时图片（处理后自动删除）
 ├── src/
 │   ├── app/
-│   │   ├── api/               # 后端 API Routes
-│   │   ├── applications/      # 岗位管理页面
-│   │   ├── resumes/           # 简历管理页面
-│   │   ├── interviews/        # 面试记录页面
-│   │   ├── dashboard/         # 数据统计页面
-│   │   ├── layout.tsx         # 全局布局
-│   │   └── page.tsx           # 首页（redirect）
+│   │   ├── layout.tsx          # 根 Layout（纯壳，无业务 UI）
+│   │   ├── page.tsx            # Landing Page（/）
+│   │   ├── login/page.tsx      # 登录页（/login）
+│   │   ├── (app)/              # 路由组：认证后的内部页面
+│   │   │   ├── layout.tsx      # 内部 Layout（Sidebar + Header + AuthGuard）
+│   │   │   ├── dashboard/      # 数据统计
+│   │   │   ├── applications/   # 岗位投递
+│   │   │   ├── resumes/        # 简历管理
+│   │   │   └── interviews/     # 面试记录
+│   │   └── api/                # 后端 API Routes
+│   │       ├── applications/[id]/
+│   │       ├── resumes/[id]/
+│   │       ├── interviews/[id]/
+│   │       ├── stats/
+│   │       ├── ocr/            # OCR + LLM 解析
+│   │       ├── match/          # JD × 简历匹配
+│   │       ├── resume-match/   # 批量简历排名
+│   │       └── resume-optimize/# 简历优化
 │   ├── components/
-│   │   ├── applications/      # 岗位相关组件
-│   │   ├── dashboard/         # 图表组件
-│   │   ├── interviews/        # 面试组件
-│   │   └── layout/            # 导航/侧边栏
+│   │   ├── auth/AuthGuard.tsx  # 客户端路由守卫
+│   │   ├── layout/             # Sidebar + Header
+│   │   ├── applications/       # 业务组件（Table/Kanban/Modals）
+│   │   ├── dashboard/          # 图表组件
+│   │   └── interviews/         # 面试时间线组件
 │   ├── lib/
-│   │   ├── prisma.ts          # Prisma 客户端单例
-│   │   └── utils.ts           # 工具函数（cn, formatDate, STATUS_LIST 等）
-│   └── types/
-│       └── index.ts           # 全局 TypeScript 类型定义
-├── .env                       # DATABASE_URL
-├── .env.local                 # DOUBAO_API_KEY（不提交 Git）
-└── docs/                      # 项目文档（本目录）
+│   │   ├── prisma.ts           # Prisma 单例
+│   │   ├── auth.ts             # 认证工具（localStorage token）
+│   │   └── utils.ts            # cn/formatDate/STATUS_LIST 等
+│   └── types/index.ts          # 全局 TypeScript 类型
+├── .env.development            # dev 环境配置（提交到 Git）
+├── .env.production             # prod 环境配置（提交到 Git）
+├── .env.local                  # 本地密钥（不提交）
+└── nginx.conf                  # 服务器双环境反向代理参考配置
 ```
 
----
+## 数据模型
 
-## 数据层（Prisma + SQLite）
+```prisma
+Application   // 岗位投递记录
+  id, company, position, channel, appliedDate, status
+  jdText, jdRequire, jdDesc  // OCR 解析结果
+  notes, resumeId            // 备注 + 关联简历
+  interviews[]               // 一对多 → Interview
 
-### 数据模型
+Resume        // 简历版本
+  id, name, filename, filepath, filesize, mimetype
+  tags (JSON string)
+  applications[]             // 一对多 → Application
 
-```
-Application（岗位投递）
-  ├── id, company, position, channel, appliedDate, status
-  ├── jdText, jdRequire, jdDesc          ← OCR/LLM 填充
-  ├── notes
-  ├── resumeId → Resume（可选关联）
-  └── interviews[] → Interview（一对多）
-
-Resume（简历版本）
-  ├── id, name, filename, filepath, filesize, mimetype
-  ├── tags（JSON 字符串）
-  └── applications[] → Application
-
-Interview（面试记录）
-  ├── id, applicationId → Application
-  ├── round, scheduledAt, interviewer, location
-  └── questions, reflection, result
+Interview     // 面试记录
+  id, applicationId (cascade delete)
+  round, scheduledAt, interviewer, location
+  questions, reflection, result
 ```
 
-### 关键约束
-- Application 删除时：Interview 级联删除（`onDelete: Cascade`）
-- Resume 删除时：Application.resumeId 置 null（`onDelete: SetNull`）
+## 认证架构
 
----
+```
+访问 /dashboard（或任何 (app)/* 页面）
+         ↓
+(app)/layout.tsx 渲染 AuthGuard（Client Component）
+         ↓
+useEffect → isAuthenticated() → 读 localStorage['offerflow_token']
+         ├─ 无 token → router.replace('/login')
+         └─ 有 token → setVerified(true) → 渲染页面
 
-## 服务层（API Routes）
+登录流程：
+/login → 输入 admin/123456 → auth.ts:login() → 写入 localStorage
+→ router.replace('/dashboard')
+```
 
-### 岗位管理
-| 方法 | 路径 | 功能 |
+## API 路由一览
+
+### CRUD 接口
+
+| 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/applications` | 列表（支持 status/search/limit 参数） |
-| POST | `/api/applications` | 新建岗位 |
-| GET | `/api/applications/[id]` | 单条详情 |
-| PUT | `/api/applications/[id]` | 更新（含状态变更） |
-| DELETE | `/api/applications/[id]` | 删除 |
+| GET | `/api/applications` | 列表（支持 status/search/limit 过滤） |
+| POST | `/api/applications` | 新建 |
+| GET/PUT/DELETE | `/api/applications/[id]` | 详情/更新/删除 |
+| GET | `/api/resumes` | 简历列表（含关联数量） |
+| POST | `/api/resumes` | 上传（multipart/form-data） |
+| DELETE | `/api/resumes/[id]` | 删除（含文件清理） |
+| GET/POST | `/api/interviews` | 面试列表/新建 |
+| PUT/DELETE | `/api/interviews/[id]` | 更新/删除 |
+| GET | `/api/stats` | 统计数据 |
 
-### 简历管理
-| 方法 | 路径 | 功能 |
-|------|------|------|
-| GET | `/api/resumes` | 简历列表 |
-| POST | `/api/resumes` | 上传简历（multipart/form-data） |
-| DELETE | `/api/resumes/[id]` | 删除简历（含文件） |
+### AI 接口
 
-### 面试记录
-| 方法 | 路径 | 功能 |
-|------|------|------|
-| GET | `/api/interviews` | 列表（支持 applicationId 筛选） |
-| POST | `/api/interviews` | 新建面试记录 |
-| PUT | `/api/interviews/[id]` | 更新 |
-| DELETE | `/api/interviews/[id]` | 删除 |
-
-### AI 功能
 | 方法 | 路径 | 输入 | 输出 |
 |------|------|------|------|
-| POST | `/api/ocr` | `FormData { image }` | `{ rawText, company, position, requirements, description }` |
-| POST | `/api/match` | `{ jdText, resumeId }` | `{ score, matchLevel, strengths, gaps, suggestions, strategy }` |
-| POST | `/api/resume-match` | `{ jdText }` | `{ bestResumeId, bestResumeName, bestScore, ranking[] }` |
-| POST | `/api/resume-optimize` | `{ jdText, resumeId }` | `{ optimizedResume, changes[], originalName }` |
+| POST | `/api/ocr` | FormData {image} | {rawText, company, position, requirements, description} |
+| POST | `/api/match` | {jdText, resumeId} | {score, matchLevel, strengths, gaps, suggestions, strategy} |
+| POST | `/api/resume-match` | {jdText} | {bestResumeId, bestResumeName, bestScore, ranking[]} |
+| POST | `/api/resume-optimize` | {jdText, resumeId} | {optimizedResume, changes[]} |
 
-### 统计
-| 方法 | 路径 | 输出 |
-|------|------|------|
-| GET | `/api/stats` | `{ total, replied, replyRate, interviewing, offerCount, statusDistribution[], channelDistribution[], recentApplications[] }` |
+## LLM 调用规范
 
----
+```typescript
+// 所有 AI 接口统一格式
+const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.DOUBAO_API_KEY}`,
+  },
+  body: JSON.stringify({
+    model: 'deepseek-v3-2-251201',
+    messages: [
+      { role: 'system', content: '...' },
+      { role: 'user', content: '...' },
+    ],
+    temperature: 0,  // resume-optimize 用 0.3
+  }),
+})
+const data = await response.json()
+const raw = data.choices[0].message.content
 
-## AI 层
-
-### LLM 配置
-- **Provider**：火山引擎 Ark（`https://ark.cn-beijing.volces.com/api/v3/chat/completions`）
-- **模型**：`deepseek-v3-2-251201`
-- **认证**：`Authorization: Bearer ${DOUBAO_API_KEY}`
-- **响应格式**：OpenAI 兼容格式，取值路径 `data.choices[0].message.content`
-
-### JSON 安全解析（所有 AI 接口统一用法）
-```ts
+// 统一 JSON 安全解析
 const match = raw.match(/\{[\s\S]*\}/)
-if (!match) return fallback
 const parsed = JSON.parse(match[0])
 ```
 
-### OCR 配置
-- **库**：Tesseract.js v5
-- **语言**：`chi_sim+eng`
-- **语言包路径**：`public/tessdata/`（本地，避免 CDN 问题）
-- **fallback**：LLM 解析失败时使用正则提取
+## parseResume 工具（⚠️ 当前重复，待提取）
 
-### parseResume 工具函数
-> ⚠️ 当前在三个 route 文件中各有一份，应重构为 `src/lib/parseResume.ts`
+当前在 `match/route.ts`、`resume-match/route.ts`、`resume-optimize/route.ts` 中各有一份相同实现：
 
-```ts
+```typescript
 async function parseResume(filepath: string, mimetype: string): Promise<string>
 // filepath: 相对 public/ 的路径，如 /uploads/resumes/xxx.pdf
-// 支持: application/pdf → pdf-parse
-//       application/vnd...docx / application/msword → mammoth
+// 支持 PDF（pdf-parse）和 DOCX（mammoth）
+// 待迁移到：src/lib/parseResume.ts
 ```
 
----
+## 前端状态管理
 
-## 前端层
+全部使用 React 内置 hooks（useState / useCallback / useEffect），无全局状态库。
 
-### 组件结构
-
-```
-src/components/applications/
-  ├── ApplicationTable.tsx    # 列表视图（可展开行 + 3个AI按钮）
-  ├── KanbanBoard.tsx         # 看板视图（拖拽）
-  ├── ApplicationForm.tsx     # 新增/编辑弹窗（含 OCR 上传）
-  ├── MatchModal.tsx          # AI 匹配分析弹窗
-  ├── ResumeRankModal.tsx     # 自动选最优简历弹窗
-  ├── ResumeOptimizeModal.tsx # 简历优化弹窗
-  └── StatusBadge.tsx         # 状态标签
-```
-
-### 状态管理
-- 全部使用 React `useState` / `useCallback` / `useEffect`，无全局状态库
-- 岗位列表数据在 `ApplicationsPage` 维护，通过 props 传递给子组件
-- Modal 的 open/close 状态由 `ApplicationTable` 内部维护
-
-### 关键工具（src/lib/utils.ts）
-- `STATUS_LIST`：岗位状态枚举
-- `CHANNEL_LIST`：投递渠道枚举
-- `cn()`：Tailwind 类名合并
-- `formatDate()`：日期格式化
-
----
-
-## 数据流示意
+## 数据流示例：OCR → 新建岗位
 
 ```
-用户操作
-  │
-  ├── 新增岗位（含OCR）
-  │     ApplicationForm → POST /api/ocr → POST /api/applications
-  │
-  ├── 匹配分析
-  │     ApplicationTable(展开) → MatchModal → POST /api/match
-  │                                         → prisma + parseResume + DeepSeek
-  │
-  ├── 自动选简历
-  │     ResumeRankModal(自动) → POST /api/resume-match
-  │                           → prisma.findMany + parseResume × N + DeepSeek
-  │
-  └── 优化简历
-        ResumeOptimizeModal → POST /api/resume-optimize
-                            → prisma.findUnique + parseResume + DeepSeek
+用户上传截图
+→ POST /api/ocr（Tesseract.js 识别原文）
+→ extractJobInfoWithLLM()（DeepSeek 结构化）
+→ 返回 {company, position, requirements, description}
+→ 前端 ApplicationForm 自动填充字段
+→ 用户确认后 POST /api/applications 写入数据库
 ```
