@@ -4,8 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { unlink } from 'fs/promises'
-import path from 'path'
+import { del } from '@vercel/blob' // ✅ 修改：本地 unlink → Vercel Blob del
 
 export async function GET(
   request: NextRequest,
@@ -72,10 +71,11 @@ export async function DELETE(
     // 删除数据库记录
     await prisma.resume.delete({ where: { id: params.id } })
 
-    // 删除实际文件（忽略文件不存在的错误）
+    // ✅ 修改：从 Vercel Blob 删除文件（filepath 现在是 Blob URL）
     try {
-      const filePath = path.join(process.cwd(), 'public', resume.filepath)
-      await unlink(filePath)
+      if (resume.filepath.startsWith('http')) {
+        await del(resume.filepath)
+      }
     } catch {
       // 文件可能已不存在，忽略错误
     }

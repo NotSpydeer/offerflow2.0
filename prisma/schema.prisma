@@ -1,12 +1,12 @@
 // Prisma Schema for OfferFlow - 求职简历投递管理系统
-// 数据库: SQLite
+// 数据库: PostgreSQL（Vercel 生产环境）/ SQLite（本地开发，见 .env.development）
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

@@ -2,30 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { readFile } from 'fs/promises'
-import path from 'path'
-
-async function parseResume(filepath: string, mimetype: string): Promise<string> {
-  const absPath = path.join(process.cwd(), 'public', filepath)
-  const buffer = await readFile(absPath)
-
-  if (mimetype === 'application/pdf') {
-    const pdfParse = (await import('pdf-parse')).default
-    const result = await pdfParse(buffer)
-    return result.text
-  }
-
-  if (
-    mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-    mimetype === 'application/msword'
-  ) {
-    const mammoth = await import('mammoth')
-    const result = await mammoth.extractRawText({ buffer })
-    return result.value
-  }
-
-  throw new Error(`不支持的简历格式：${mimetype}`)
-}
+import { parseResume } from '@/lib/parseResume' // ✅ 修改：从共享 lib 导入
 
 export async function POST(request: NextRequest) {
   try {

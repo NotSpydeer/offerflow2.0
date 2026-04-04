@@ -3,8 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
+import { put } from '@vercel/blob' // ✅ 修改：本地文件写入 → Vercel Blob 存储
 
 // GET - 获取所有简历版本
 export async function GET() {
@@ -51,26 +50,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '只支持 PDF 或 DOCX 格式' }, { status: 400 })
     }
 
-    // 创建存储目录
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'resumes')
-    await mkdir(uploadDir, { recursive: true })
-
-    // 生成唯一文件名（避免冲突）
-    const timestamp = Date.now()
-    const ext = path.extname(file.name)
-    const storedFilename = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-    const filepath = path.join(uploadDir, storedFilename)
-
-    // 写入文件
-    const buffer = Buffer.from(await file.arrayBuffer())
-    await writeFile(filepath, buffer)
+    // ✅ 修改：上传到 Vercel Blob，filepath 存储为公开 URL
+    const blob = await put(
+      `resumes/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`,
+      file,
+      { access: 'public' }
+    )
 
     // 保存到数据库
     const resume = await prisma.resume.create({
       data: {
         name,
         filename: file.name,
-        filepath: `/uploads/resumes/${storedFilename}`,
+        filepath: blob.url, // ✅ 修改：存储 Blob URL 而非本地路径
         filesize: file.size,
         mimetype: file.type,
         tags,
