@@ -24,7 +24,7 @@ export async function parseResume(filepath: string, mimetype: string): Promise<s
   }
 
   if (mimetype === 'application/pdf') {
-    const pdfParse = (await import('pdf-parse')).default
+    const pdfParse = (await import('pdf-parse')) as any
     const result = await pdfParse(buffer)
     return result.text
   }
