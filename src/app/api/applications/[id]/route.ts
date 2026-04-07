@@ -3,6 +3,8 @@
 // API: DELETE /api/applications/[id] - 删除岗位
 
 import { NextRequest, NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { prisma } from '@/lib/prisma'
 
 // GET - 获取单个岗位详情

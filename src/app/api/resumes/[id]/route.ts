@@ -3,6 +3,8 @@
 // API: DELETE /api/resumes/[id] - 删除简历
 
 import { NextRequest, NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { prisma } from '@/lib/prisma'
 import { del } from '@vercel/blob' // ✅ 修改：本地 unlink → Vercel Blob del
 
