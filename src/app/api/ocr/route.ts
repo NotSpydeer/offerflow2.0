@@ -1,13 +1,10 @@
 // API: POST /api/ocr - 上传截图进行OCR识别
-// 使用 Tesseract.js 识别招聘截图中的文字，并提取关键信息
+// 生产环境（Vercel）：使用 LLM 视觉能力直接识别图片
+// 本地开发：使用 Tesseract.js OCR
 
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir, unlink } from 'fs/promises'
-import path from 'path'
 
 export async function POST(request: NextRequest) {
-  let tempFilePath: string | null = null
-
   try {
     const formData = await request.formData()
     const file = formData.get('image') as File | null
@@ -16,43 +13,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '请上传图片文件' }, { status: 400 })
     }
 
-    // 校验文件类型
     if (!file.type.startsWith('image/')) {
       return NextResponse.json({ error: '只支持图片格式（PNG/JPG/WEBP）' }, { status: 400 })
     }
 
-    // 保存临时文件
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'jd-screenshots')
-    await mkdir(uploadDir, { recursive: true })
-
-    const timestamp = Date.now()
-    const ext = path.extname(file.name) || '.png'
-    const tempFilename = `temp-${timestamp}${ext}`
-    tempFilePath = path.join(uploadDir, tempFilename)
-
     const buffer = Buffer.from(await file.arrayBuffer())
-    await writeFile(tempFilePath, buffer)
+    const base64Image = buffer.toString('base64')
+    const dataUrl = `data:${file.type};base64,${base64Image}`
 
-    // 动态导入 Tesseract.js（避免服务端打包问题）
-    const Tesseract = await import('tesseract.js')
+    let rawText: string
 
-    // 语言包本地路径（解决 jsDelivr CDN 在国内无法访问的问题）
-    const langPath = path.join(process.cwd(), 'public', 'tessdata')
+    const apiKey = process.env.DOUBAO_API_KEY
+    if (apiKey) {
+      // 使用 LLM 视觉能力直接识别图片内容（Vercel 兼容）
+      rawText = await ocrWithVision(apiKey, dataUrl)
+    } else {
+      // 本地开发 fallback：Tesseract.js
+      rawText = await ocrWithTesseract(buffer)
+    }
 
-    // OCR 识别（支持中文+英文）
-    const result = await Tesseract.default.recognize(
-      tempFilePath,
-      'chi_sim+eng',
-      {
-        langPath,
-        gzip: true,
-        // logger: (m) => console.log(m), // 调试时取消注释
-      }
-    )
-
-    const rawText = result.data.text
-
-    // 优先用 LLM 结构化解析，失败则 fallback 正则
     const extracted = await extractJobInfoWithLLM(rawText)
 
     return NextResponse.json({
@@ -62,16 +41,64 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('POST /api/ocr error:', error)
     return NextResponse.json({ error: 'OCR识别失败，请重试' }, { status: 500 })
-  } finally {
-    // 清理临时文件
-    if (tempFilePath) {
-      try {
-        await unlink(tempFilePath)
-      } catch {
-        // 忽略清理错误
-      }
-    }
   }
+}
+
+/**
+ * 使用 LLM 视觉能力识别图片中的招聘文字
+ */
+async function ocrWithVision(apiKey: string, dataUrl: string): Promise<string> {
+  const res = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'doubao-1-5-vision-pro-32k-250115',
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: '请完整识别这张招聘截图中的所有文字内容，保持原始格式和换行。只输出识别到的文字，不要添加任何解释。',
+            },
+            {
+              type: 'image_url',
+              image_url: { url: dataUrl },
+            },
+          ],
+        },
+      ],
+    }),
+  })
+
+  if (!res.ok) {
+    const errText = await res.text()
+    console.error('Vision OCR 报错:', errText)
+    throw new Error(`Vision OCR failed: ${res.status}`)
+  }
+
+  const data = await res.json()
+  return data.choices?.[0]?.message?.content ?? ''
+}
+
+/**
+ * 本地开发 fallback：Tesseract.js OCR
+ */
+async function ocrWithTesseract(buffer: Buffer): Promise<string> {
+  const Tesseract = await import('tesseract.js')
+  const path = await import('path')
+  const langPath = path.join(process.cwd(), 'public', 'tessdata')
+
+  const result = await Tesseract.default.recognize(buffer, 'chi_sim+eng', {
+    langPath,
+    gzip: true,
+  })
+
+  return result.data.text
 }
 
 type JobInfo = {
