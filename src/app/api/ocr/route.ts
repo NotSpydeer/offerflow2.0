@@ -1,10 +1,15 @@
 // API: POST /api/ocr - 上传截图进行OCR识别
-// 生产环境（Vercel）：使用 LLM 视觉能力直接识别图片
-// 本地开发：使用 Tesseract.js OCR
+// 使用 Tesseract.js 识别招聘截图中的文字，并提取关键信息
+// Vercel 兼容：临时文件写到 /tmp（Vercel 唯一可写目录）
 
 import { NextRequest, NextResponse } from 'next/server'
+import { writeFile, unlink } from 'fs/promises'
+import path from 'path'
+import os from 'os'
 
 export async function POST(request: NextRequest) {
+  let tempFilePath: string | null = null
+
   try {
     const formData = await request.formData()
     const file = formData.get('image') as File | null
@@ -17,20 +22,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '只支持图片格式（PNG/JPG/WEBP）' }, { status: 400 })
     }
 
+    // 写临时文件到系统 tmp 目录（Vercel 上 /tmp 可写）
     const buffer = Buffer.from(await file.arrayBuffer())
-    const base64Image = buffer.toString('base64')
-    const dataUrl = `data:${file.type};base64,${base64Image}`
+    const ext = path.extname(file.name) || '.png'
+    tempFilePath = path.join(os.tmpdir(), `ocr-${Date.now()}${ext}`)
+    await writeFile(tempFilePath, buffer)
 
-    let rawText: string
+    // 动态导入 Tesseract.js
+    const Tesseract = await import('tesseract.js')
 
-    const apiKey = process.env.DOUBAO_API_KEY
-    if (apiKey) {
-      // 使用 LLM 视觉能力直接识别图片内容（Vercel 兼容）
-      rawText = await ocrWithVision(apiKey, dataUrl)
-    } else {
-      // 本地开发 fallback：Tesseract.js
-      rawText = await ocrWithTesseract(buffer)
-    }
+    // 语言包路径（打包时会包含在 .next/server 中）
+    const langPath = path.join(process.cwd(), 'public', 'tessdata')
+
+    const result = await Tesseract.default.recognize(
+      tempFilePath,
+      'chi_sim+eng',
+      {
+        langPath,
+        gzip: true,
+      }
+    )
+
+    const rawText = result.data.text
 
     const extracted = await extractJobInfoWithLLM(rawText)
 
@@ -41,64 +54,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('POST /api/ocr error:', error)
     return NextResponse.json({ error: 'OCR识别失败，请重试' }, { status: 500 })
+  } finally {
+    if (tempFilePath) {
+      try { await unlink(tempFilePath) } catch { /* ignore */ }
+    }
   }
-}
-
-/**
- * 使用 LLM 视觉能力识别图片中的招聘文字
- */
-async function ocrWithVision(apiKey: string, dataUrl: string): Promise<string> {
-  const res = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'doubao-1-5-vision-pro-32k-250115',
-      temperature: 0,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: '请完整识别这张招聘截图中的所有文字内容，保持原始格式和换行。只输出识别到的文字，不要添加任何解释。',
-            },
-            {
-              type: 'image_url',
-              image_url: { url: dataUrl },
-            },
-          ],
-        },
-      ],
-    }),
-  })
-
-  if (!res.ok) {
-    const errText = await res.text()
-    console.error('Vision OCR 报错:', errText)
-    throw new Error(`Vision OCR failed: ${res.status}`)
-  }
-
-  const data = await res.json()
-  return data.choices?.[0]?.message?.content ?? ''
-}
-
-/**
- * 本地开发 fallback：Tesseract.js OCR
- */
-async function ocrWithTesseract(buffer: Buffer): Promise<string> {
-  const Tesseract = await import('tesseract.js')
-  const path = await import('path')
-  const langPath = path.join(process.cwd(), 'public', 'tessdata')
-
-  const result = await Tesseract.default.recognize(buffer, 'chi_sim+eng', {
-    langPath,
-    gzip: true,
-  })
-
-  return result.data.text
 }
 
 type JobInfo = {
