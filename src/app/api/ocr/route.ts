@@ -1,15 +1,10 @@
-// API: POST /api/ocr - 上传截图进行OCR识别
-// 使用 Tesseract.js 识别招聘截图中的文字，并提取关键信息
-// Vercel 兼容：临时文件写到 /tmp（Vercel 唯一可写目录）
+// API: POST /api/ocr - 上传截图进行 OCR 识别
+// 生产环境：使用豆包视觉模型识别图片文字（快速、Vercel 兼容）
+// 本地无 API Key 时：fallback 到 Tesseract.js
 
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, unlink } from 'fs/promises'
-import path from 'path'
-import os from 'os'
 
 export async function POST(request: NextRequest) {
-  let tempFilePath: string | null = null
-
   try {
     const formData = await request.formData()
     const file = formData.get('image') as File | null
@@ -22,28 +17,62 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '只支持图片格式（PNG/JPG/WEBP）' }, { status: 400 })
     }
 
-    // 写临时文件到系统 tmp 目录（Vercel 上 /tmp 可写）
     const buffer = Buffer.from(await file.arrayBuffer())
-    const ext = path.extname(file.name) || '.png'
-    tempFilePath = path.join(os.tmpdir(), `ocr-${Date.now()}${ext}`)
-    await writeFile(tempFilePath, buffer)
+    const apiKey = process.env.DOUBAO_API_KEY
 
-    // 动态导入 Tesseract.js
-    const Tesseract = await import('tesseract.js')
+    let rawText: string
 
-    // 语言包路径（打包时会包含在 .next/server 中）
-    const langPath = path.join(process.cwd(), 'public', 'tessdata')
+    if (apiKey) {
+      // 豆包视觉模型：图片转 base64 直接识别
+      const base64 = buffer.toString('base64')
+      const dataUrl = `data:${file.type};base64,${base64}`
 
-    const result = await Tesseract.default.recognize(
-      tempFilePath,
-      'chi_sim+eng',
-      {
+      const res = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'doubao-1-5-vision-pro-32k-250115',
+          temperature: 0,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: '请完整识别这张招聘截图中的所有文字内容，保持原始格式和换行。只输出识别到的文字，不要添加任何解释。',
+                },
+                {
+                  type: 'image_url',
+                  image_url: { url: dataUrl },
+                },
+              ],
+            },
+          ],
+        }),
+      })
+
+      if (!res.ok) {
+        const errText = await res.text()
+        console.error('Vision OCR 报错:', errText)
+        return NextResponse.json({ error: 'OCR 识别失败：视觉模型调用出错' }, { status: 500 })
+      }
+
+      const data = await res.json()
+      rawText = data.choices?.[0]?.message?.content ?? ''
+    } else {
+      // 本地 fallback：Tesseract.js
+      const Tesseract = await import('tesseract.js')
+      const path = await import('path')
+      const langPath = path.join(process.cwd(), 'public', 'tessdata')
+      const result = await Tesseract.default.recognize(buffer, 'chi_sim+eng', {
         langPath,
         gzip: true,
-      }
-    )
-
-    const rawText = result.data.text
+      })
+      rawText = result.data.text
+    }
 
     const extracted = await extractJobInfoWithLLM(rawText)
 
@@ -54,10 +83,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('POST /api/ocr error:', error)
     return NextResponse.json({ error: 'OCR识别失败，请重试' }, { status: 500 })
-  } finally {
-    if (tempFilePath) {
-      try { await unlink(tempFilePath) } catch { /* ignore */ }
-    }
   }
 }
 
