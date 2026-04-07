@@ -1,7 +1,8 @@
 'use client'
 
 // Dashboard 页面
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { StatsCards } from '@/components/dashboard/StatsCards'
 import { StatusPieChart } from '@/components/dashboard/StatusPieChart'
 import { ChannelBarChart } from '@/components/dashboard/ChannelBarChart'
@@ -15,11 +16,9 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchStats()
-  }, [])
+  const pathname = usePathname()
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch('/api/stats')
@@ -32,7 +31,12 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  // 每次进入 dashboard 页面都刷新数据
+  useEffect(() => {
+    fetchStats()
+  }, [pathname, fetchStats])
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
