@@ -25,7 +25,7 @@ export async function parseResume(filepath: string, mimetype: string): Promise<s
 
   if (mimetype === 'application/pdf') {
     const { extractText } = await import('unpdf')
-    const result = await extractText(buffer)
+    const result = await extractText(new Uint8Array(buffer))
     return result.text.join('\n')
   }
 
