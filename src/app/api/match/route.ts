@@ -88,7 +88,7 @@ ${resumeText.slice(0, 4000)}
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-v3-2-251201',
+        model: 'ep-m-20260322111822-htwdm',
         temperature: 0,
         messages: [
           {

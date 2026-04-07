@@ -73,7 +73,7 @@ ${resumeList}`
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-v3-2-251201',
+        model: 'ep-m-20260322111822-htwdm',
         temperature: 0,
         messages: [
           { role: 'system', content: '你是一个专业的简历匹配排名引擎，只输出JSON。' },

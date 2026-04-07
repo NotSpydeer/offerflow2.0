@@ -69,7 +69,7 @@ ${resumeText.slice(0, 3000)}`
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-v3-2-251201',
+        model: 'ep-m-20260322111822-htwdm',
         temperature: 0.3,
         messages: [
           { role: 'system', content: '你是一个专业的简历优化引擎，只输出JSON。' },

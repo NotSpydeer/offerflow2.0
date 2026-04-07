@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'doubao-1-5-vision-pro-32k-250115',
+          model: 'ep-20260408002519-qt4vq',
           temperature: 0,
           messages: [
             {
@@ -109,7 +109,7 @@ async function extractJobInfoWithLLM(text: string): Promise<JobInfo> {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-v3-2-251201',
+        model: 'ep-m-20260322111822-htwdm',
         temperature: 0,
         messages: [
           {
