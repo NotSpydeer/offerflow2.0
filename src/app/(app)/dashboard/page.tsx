@@ -2,7 +2,6 @@
 
 // Dashboard 页面
 import { useCallback, useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
 import { StatsCards } from '@/components/dashboard/StatsCards'
 import { StatusPieChart } from '@/components/dashboard/StatusPieChart'
 import { ChannelBarChart } from '@/components/dashboard/ChannelBarChart'
@@ -16,12 +15,10 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const pathname = usePathname()
-
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/stats')
+      const res = await fetch('/api/stats', { cache: 'no-store' })
       if (res.ok) {
         const data = await res.json()
         setStats(data)
@@ -33,10 +30,20 @@ export default function DashboardPage() {
     }
   }, [])
 
-  // 每次进入 dashboard 页面都刷新数据
+  // 初次加载 + 每次页面可见时刷新数据
   useEffect(() => {
     fetchStats()
-  }, [pathname, fetchStats])
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchStats()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('focus', handleVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('focus', handleVisibility)
+    }
+  }, [fetchStats])
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
