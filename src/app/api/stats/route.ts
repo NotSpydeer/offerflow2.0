@@ -46,9 +46,9 @@ export async function GET() {
       statusGroups.map((g) => [g.status, g._count.status])
     )
 
-    // 约面数量（获得面试邀请：一面/二面/HR面/Offer）
-    const interviewInvitedStatuses = ['一面', '二面', 'HR面', 'Offer']
-    const interviewInvited = interviewInvitedStatuses.reduce(
+    // 简历通过数量（简历通过+一面/二面/HR面/Offer）
+    const resumePassedStatuses = ['简历通过', '一面', '二面', 'HR面', 'Offer']
+    const resumePassed = resumePassedStatuses.reduce(
       (sum, s) => sum + (statusMap[s] || 0), 0
     )
 
@@ -67,8 +67,8 @@ export async function GET() {
 
     return NextResponse.json({
       total,
-      interviewInvited,
-      interviewInvitedRate: applied > 0 ? Math.round((interviewInvited / applied) * 100) : 0,
+      resumePassed,
+      resumePassedRate: applied > 0 ? Math.round((resumePassed / applied) * 100) : 0,
       interviewing,
       interviewRate: applied > 0 ? Math.round((interviewing / applied) * 100) : 0,
       offerCount,

@@ -21,13 +21,13 @@ const cards = [
     sub: (s: Stats) => `本月新增 ${s.recentApplications?.length || 0} 条`,
   },
   {
-    key: 'interviewInvitedRate' as const,
-    label: '约面率',
+    key: 'resumePassedRate' as const,
+    label: '简历通过率',
     icon: TrendingUp,
     color: 'text-emerald-600',
     bg: 'bg-emerald-50',
-    format: (s: Stats) => `${s.interviewInvitedRate}%`,
-    sub: (s: Stats) => `${s.interviewInvited} 家约面`,
+    format: (s: Stats) => `${s.resumePassedRate}%`,
+    sub: (s: Stats) => `${s.resumePassed} 家通过筛选`,
   },
   {
     key: 'interviewRate' as const,

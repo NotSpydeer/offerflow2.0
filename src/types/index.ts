@@ -53,8 +53,8 @@ export interface Interview {
 // 统计数据
 export interface Stats {
   total: number           // 总投递数
-  interviewInvited: number    // 约面数
-  interviewInvitedRate: number // 约面率
+  resumePassed: number         // 简历通过数
+  resumePassedRate: number     // 简历通过率
   interviewing: number    // 面试数
   interviewRate: number   // 面试率
   offerCount: number      // Offer数
