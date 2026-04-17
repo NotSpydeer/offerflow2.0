@@ -115,14 +115,14 @@ export default function LandingPage() {
           </div>
 
           <h1 className="text-5xl font-bold text-gray-900 tracking-tight leading-[1.15] mb-5">
-            你的每一次投递，<br />
-            都应该更聪明
+            让每一次投递，<br />
+            都更有数、更高效，也更从容
           </h1>
 
           <p className="text-lg text-gray-500 leading-relaxed mb-8 max-w-xl mx-auto">
-            OfferFlow 用 AI 分析岗位、评估匹配度，自动推荐最优简历，
+            OfferFlow 会帮你看懂岗位、挑对简历，并基于 JD 优化表达，
             <br className="hidden md:block" />
-            让每一次投递都有策略、有依据、有胜算。
+            让投递过程清晰有序。
           </p>
 
           <div className="flex items-center justify-center gap-3 flex-wrap">
