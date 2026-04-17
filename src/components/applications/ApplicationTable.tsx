@@ -95,6 +95,9 @@ export function ApplicationTable({
               </th>
             ))}
             <th className="text-left px-4 py-3 text-xs font-medium text-gray-400">简历版本</th>
+            <th className="text-left px-4 py-3 text-xs font-medium text-gray-400">渠道</th>
+            <th className="text-left px-4 py-3 text-xs font-medium text-gray-400">部门</th>
+            <th className="text-left px-4 py-3 text-xs font-medium text-gray-400">备注</th>
             <th className="text-left px-4 py-3 text-xs font-medium text-gray-400">面试</th>
             <th className="px-4 py-3 text-xs font-medium text-gray-400 text-right">操作</th>
           </tr>
@@ -121,6 +124,15 @@ export function ApplicationTable({
                   {app.resume?.name || (
                     <span className="text-gray-300">-</span>
                   )}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-400">
+                  {app.channel || <span className="text-gray-300">-</span>}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-400">
+                  {app.department || <span className="text-gray-300">-</span>}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-400 max-w-[120px] truncate" title={app.notes || ''}>
+                  {app.notes || <span className="text-gray-300">-</span>}
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-400">
                   {app.interviews?.length ? (
@@ -177,7 +189,7 @@ export function ApplicationTable({
               </tr>
               {expandedId === app.id && (
                 <tr key={`${app.id}-detail`} className="border-b border-gray-100">
-                  <td colSpan={7} className="px-4 pb-4 pt-0">
+                  <td colSpan={10} className="px-4 pb-4 pt-0">
                     <div className="bg-gray-50 rounded-lg p-4 space-y-4 max-h-72 overflow-y-auto">
                       {app.jdDesc ? (
                         <div>

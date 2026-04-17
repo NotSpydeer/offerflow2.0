@@ -21,13 +21,13 @@ const cards = [
     sub: (s: Stats) => `本月新增 ${s.recentApplications?.length || 0} 条`,
   },
   {
-    key: 'replyRate' as const,
-    label: '回复率',
+    key: 'interviewInvitedRate' as const,
+    label: '约面率',
     icon: TrendingUp,
     color: 'text-emerald-600',
     bg: 'bg-emerald-50',
-    format: (s: Stats) => `${s.replyRate}%`,
-    sub: (s: Stats) => `${s.replied} 家有回复`,
+    format: (s: Stats) => `${s.interviewInvitedRate}%`,
+    sub: (s: Stats) => `${s.interviewInvited} 家约面`,
   },
   {
     key: 'interviewRate' as const,

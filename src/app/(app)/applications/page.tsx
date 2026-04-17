@@ -236,6 +236,7 @@ export default function ApplicationsPage() {
             company: editingApp.company,
             position: editingApp.position,
             channel: editingApp.channel,
+            department: editingApp.department || '',
             appliedDate: editingApp.appliedDate?.split('T')[0],
             status: editingApp.status,
             jdText: editingApp.jdText || '',

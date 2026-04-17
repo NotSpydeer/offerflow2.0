@@ -6,6 +6,7 @@ export interface Application {
   company: string
   position: string
   channel: string
+  department?: string | null
   appliedDate: string
   status: string
   jdText?: string | null
@@ -52,8 +53,8 @@ export interface Interview {
 // 统计数据
 export interface Stats {
   total: number           // 总投递数
-  replied: number         // 有回复数
-  replyRate: number       // 回复率
+  interviewInvited: number    // 约面数
+  interviewInvitedRate: number // 约面率
   interviewing: number    // 面试数
   interviewRate: number   // 面试率
   offerCount: number      // Offer数
@@ -68,6 +69,7 @@ export interface ApplicationFormData {
   company: string
   position: string
   channel: string
+  department?: string
   appliedDate: string
   status: string
   jdText?: string

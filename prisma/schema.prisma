@@ -18,6 +18,7 @@ model Application {
   company     String   // 公司名称
   position    String   // 职位名称
   channel     String   @default("其他") // 投递渠道：官网/BOSS/猎聘/内推/其他
+  department  String?  // 具体部门（如：商业化、基础架构）
   appliedDate DateTime @default(now())  // 投递日期
   status      String   @default("已投递") // 当前状态
 

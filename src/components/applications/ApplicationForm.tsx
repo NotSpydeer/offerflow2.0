@@ -17,6 +17,7 @@ const DEFAULT_FORM: ApplicationFormData = {
   company: '',
   position: '',
   channel: 'BOSS',
+  department: '',
   appliedDate: new Date().toISOString().split('T')[0],
   status: '已投递',
   jdText: '',
@@ -223,6 +224,19 @@ export function ApplicationForm({
 
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                      具体部门
+                    </label>
+                    <input
+                      name="department"
+                      value={form.department || ''}
+                      onChange={handleChange}
+                      placeholder="如：商业化部门"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1.5">
                       投递日期
                     </label>
                     <input
@@ -233,7 +247,9 @@ export function ApplicationForm({
                       className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50/50"
                     />
                   </div>
+                </div>
 
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1.5">
                       当前状态
@@ -249,23 +265,23 @@ export function ApplicationForm({
                       ))}
                     </select>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                    关联简历版本
-                  </label>
-                  <select
-                    name="resumeId"
-                    value={form.resumeId || ''}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50/50"
-                  >
-                    <option value="">不关联简历</option>
-                    {resumes.map((r) => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
-                    ))}
-                  </select>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                      关联简历版本
+                    </label>
+                    <select
+                      name="resumeId"
+                      value={form.resumeId || ''}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50/50"
+                    >
+                      <option value="">不关联简历</option>
+                      {resumes.map((r) => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </>
             )}

@@ -12,7 +12,10 @@ import {
   CheckCircle2,
   ChevronRight,
   BarChart3,
+  Trophy,
+  Wand2,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 // ── 功能卡片数据 ──────────────────────────────────────────────────────────────
 const features = [
@@ -49,7 +52,7 @@ const features = [
   {
     icon: PieChart,
     title: '求职数据统计',
-    desc: '投递漏斗、渠道分布、回复率一览，让你的求职策略有据可依。',
+    desc: '投递漏斗、渠道分布、约面率一览，让你的求职策略有据可依。',
     tag: '数据洞察',
   },
 ]
@@ -89,6 +92,7 @@ export default function LandingPage() {
 
           <nav className="hidden md:flex items-center gap-6 text-sm text-gray-500">
             <a href="#features" className="hover:text-gray-900 transition-colors">功能</a>
+            <a href="#ai-guide" className="hover:text-gray-900 transition-colors">AI 功能</a>
             <a href="#how-it-works" className="hover:text-gray-900 transition-colors">使用流程</a>
           </nav>
 
@@ -171,6 +175,77 @@ export default function LandingPage() {
                   <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                     {tag}
                   </span>
+                </div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-1.5">{title}</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── AI 功能引导 ─────────────────────────────────────────────── */}
+      <section id="ai-guide" className="py-20 px-6 border-t border-gray-100">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-1.5 bg-violet-50 text-violet-600 text-xs font-medium px-3 py-1 rounded-full mb-4">
+              <Sparkles className="w-3.5 h-3.5" />
+              AI 核心功能
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+              三大 AI 能力，藏在每个岗位里
+            </h2>
+            <p className="text-gray-500 text-base max-w-xl mx-auto">
+              进入「岗位管理」页面，点击任意岗位展开详情，即可使用以下 AI 功能
+            </p>
+          </div>
+
+          <div className="bg-gray-50 rounded-2xl p-6 md:p-8 mb-8">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="w-6 h-6 bg-gray-900 text-white rounded-md flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                进入「岗位管理」
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 hidden md:block" />
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="w-6 h-6 bg-gray-900 text-white rounded-md flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                点击岗位行展开详情
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 hidden md:block" />
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="w-6 h-6 bg-gray-900 text-white rounded-md flex items-center justify-center text-xs font-bold shrink-0">3</span>
+                选择下方 AI 功能按钮
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              {
+                icon: Sparkles,
+                title: 'AI 匹配分析',
+                desc: '将岗位 JD 与你的简历逐项对比，输出匹配评分（0-100）、能力差距与投递策略。',
+                color: 'text-violet-600',
+                bg: 'bg-violet-50',
+              },
+              {
+                icon: Trophy,
+                title: '自动选最优简历',
+                desc: '多份简历不知道投哪份？AI 自动排序打分，推荐最匹配该岗位的简历版本。',
+                color: 'text-amber-600',
+                bg: 'bg-amber-50',
+              },
+              {
+                icon: Wand2,
+                title: '一键优化简历',
+                desc: '针对目标岗位的关键词和要求，自动重写简历表达，提升 ATS 通过率。',
+                color: 'text-emerald-600',
+                bg: 'bg-emerald-50',
+              },
+            ].map(({ icon: Icon, title, desc, color, bg }) => (
+              <div key={title} className="bg-white border border-gray-200 rounded-2xl p-6 hover:border-gray-300 hover:shadow-md transition-all duration-200">
+                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mb-4', bg)}>
+                  <Icon className={cn('w-5 h-5', color)} />
                 </div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-1.5">{title}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
